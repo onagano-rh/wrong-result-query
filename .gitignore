@@ -1,0 +1,6 @@
+.classpath
+.project
+.settings
+infinispan.log
+logs
+target

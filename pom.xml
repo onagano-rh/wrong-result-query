@@ -1,0 +1,77 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>wrong-result-query</artifactId>
+    <version>1.0.0</version>
+
+    <properties>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <!--
+        JDG 7.0.0: 8.3.0.Final-redhat-1
+        JDG 7.1.0: 8.4.0.Final-redhat-2
+        -->
+        <version.org.infinispan>8.3.0.Final-redhat-1</version.org.infinispan>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-bom</artifactId>
+                <version>${version.org.infinispan}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-embedded</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-embedded-query</artifactId>
+            <!--
+            <version>8.4.0.Final-redhat-2-jdg-1020</version>
+            Comment out to apply the patch.
+            Install it in prior:
+            $ mvn install:install-file
+             -Dfile=/path/to/infinispan-embedded-query-8.4.0.Final-redhat-2-jdg-1020.jar
+             -DgroupId=org.infinispan -DartifactId=infinispan-embedded-query
+             -Dversion=8.4.0.Final-redhat-2-jdg-1020 -Dpackaging=jar
+            -->
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.3.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-Djava.net.preferIPv4Stack=true</argument>
+                        <argument>-Dlog4j.configurationFile=${project.basedir}/log4j2.xml</argument>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>com.example.Main</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+        <finalName>${project.artifactId}</finalName>
+    </build>
+</project>
