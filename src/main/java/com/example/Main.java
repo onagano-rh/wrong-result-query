@@ -73,8 +73,8 @@ public class Main {
         int count = 1;
         double radius = 2.51;
         // singapole
-        double sgLat = 103.842672;
-        double sgLon = 1.288724;
+        double sgLat = 1.288724;
+        double sgLon = 103.842672;
 
         for (int i = 0; i < 1000; i++) {
             // range of serveral killometers
