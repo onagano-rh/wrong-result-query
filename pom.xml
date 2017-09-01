@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.example</groupId>
     <artifactId>wrong-result-query</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
 
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -69,6 +69,8 @@
                         <argument>-classpath</argument>
                         <classpath/>
                         <argument>com.example.Main</argument>
+                        <argument>5</argument> <!-- WRITE_INTERVAL_SECS -->
+                        <argument>50</argument> <!-- QUERY_INTERVAL_MS -->
                     </arguments>
                 </configuration>
             </plugin>

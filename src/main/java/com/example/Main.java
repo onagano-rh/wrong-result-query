@@ -1,13 +1,9 @@
 package com.example;
 
-import java.util.List;
-import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.Query;
-import org.hibernate.search.query.dsl.Unit;
-import org.hibernate.search.spatial.impl.Point;
 import org.infinispan.Cache;
 import org.infinispan.configuration.cache.CacheMode;
 import org.infinispan.configuration.cache.Configuration;
@@ -17,32 +13,13 @@ import org.infinispan.configuration.global.GlobalConfiguration;
 import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.query.CacheQuery;
-import org.infinispan.query.Search;
-import org.infinispan.query.SearchManager;
 
 public class Main {
     private static Logger log = LogManager.getLogger();
 
-    public static void main(String[] args) {
-        log.info("Start");
-        Main test = new Main();
-        test.test();
-        test.cacheManager.stop();
-        log.info("End");
-    }
-    
-    private static void safeSleep(long l) {
-        try {
-            Thread.sleep(l);
-        } catch (InterruptedException ignore) {}
-    }
-
-    private EmbeddedCacheManager cacheManager;
-    private Cache<Integer, Location> cache;
-    private Random random = new Random(9999L);
-
-    public Main() {
+    private static EmbeddedCacheManager cacheManager;
+    private static Cache<Integer, Location> cache;
+    static {
         GlobalConfiguration gc = new GlobalConfigurationBuilder()
                 .clusteredDefault()
                     .transport().addProperty("configurationFile",
@@ -64,59 +41,33 @@ public class Main {
 //                    .addIndexedEntity(Location.class)
                 .jmxStatistics().enable()
                 .build();
-        this.cacheManager = new DefaultCacheManager(gc, dc);
-        this.cache = cacheManager.getCache();
+        cacheManager = new DefaultCacheManager(gc, dc);
+        cache = cacheManager.getCache();
     }
 
-    public void test() {
-        log.info("Run test");
-        int count = 1;
-        double radius = 2.51;
-        // singapole
-        double sgLat = 1.288724;
-        double sgLon = 103.842672;
-
-        for (int i = 0; i < 5000; i++) {
-            // range of serveral killometers
-            double dlat = (random.nextDouble() - 0.5) * 0.38;
-            double dlon = (random.nextDouble() - 0.5) * 0.21;
-            cache.put(count, new Location("taxi-" + count, sgLat + dlat, sgLon + dlon));
-            count++;
+    public static void main(String[] args) {
+        log.info("Start");
+        if (args.length < 2) {
+            usage();
         }
 
-//        log.info("Wait for a while");
-//        safeSleep(30000L);
+        long writeInterval = Long.parseLong(args[0]);
+        long queryInterval = Long.parseLong(args[1]);
 
-        int resQuery = 0;
-        SearchManager searchManager = Search.getSearchManager(cache);
-        Query query = searchManager
-                .buildQueryBuilderForClass(Location.class)
-                .get()
-                .spatial()
-                // .onDefaultCoordinates()
-                .within(radius, Unit.KM)
-                .ofLatitude(sgLat)
-                .andLongitude(sgLon)
-                .createQuery();
-        CacheQuery cacheQuery = searchManager.getQuery(query);
-        List list = cacheQuery.list();
-        resQuery = list.size();
-        log.info("Query returns {} results", resQuery);
+        CacheWriter cacheWriter = new CacheWriter(cache, writeInterval, TimeUnit.SECONDS);
+        cacheWriter.start();
 
-        int resDirect = 0;
-        for (Location loc : cache.values()) {
-            double dist = Point.fromCoordinates(loc).getDistanceTo(sgLat, sgLon);
-            if (dist < 0.0d)
-                log.error("Something wrong with {}, dist is {}", loc, dist);
-            if (dist <= radius)
-                resDirect++;
-        }
-        log.info("Direct filtering returns {} results", resDirect);
+        CacheReader cacheReader = new CacheReader(cache, queryInterval, TimeUnit.MILLISECONDS);
+        cacheReader.start();
 
-        if (resQuery != resDirect) {
-            log.error("Results don't match: query {}, direct {}", resQuery, resDirect);
-        } else {
-            log.info("Results match: {}", resQuery);
-        }
+        log.info("End");
+    }
+
+    private static void usage() {
+        System.out.println("Usage: Main [WRITE_INTERVAL_SECS] [QUERY_INTERVAL_MS]");
+        System.out.println();
+        System.out.println("       WRITE_INTERVAL_SECS : interval in seconds to write taxi information to the cache, without purging");
+        System.out.println("       QUERY_INTERVAL_MS : interval in millis between one query and another");
+        System.exit(0);
     }
 }
