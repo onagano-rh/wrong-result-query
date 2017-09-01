@@ -28,7 +28,7 @@ public class Main {
         log.info("Start");
         Main test = new Main();
         test.test();
-        //test.cacheManager.stop();
+        test.cacheManager.stop();
         log.info("End");
     }
     
@@ -76,7 +76,7 @@ public class Main {
         double sgLat = 1.288724;
         double sgLon = 103.842672;
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 5000; i++) {
             // range of serveral killometers
             double dlat = (random.nextDouble() - 0.5) * 0.38;
             double dlon = (random.nextDouble() - 0.5) * 0.21;
@@ -84,8 +84,8 @@ public class Main {
             count++;
         }
 
-        log.info("Wait for a while");
-        safeSleep(30000L);
+//        log.info("Wait for a while");
+//        safeSleep(30000L);
 
         int resQuery = 0;
         SearchManager searchManager = Search.getSearchManager(cache);
