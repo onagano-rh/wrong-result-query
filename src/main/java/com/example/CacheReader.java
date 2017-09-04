@@ -3,6 +3,7 @@ package com.example;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,10 +32,6 @@ class CacheReader {
     private final TimeUnit sleepTimeUnit;
     private final int numThreads;
 
-    private static final double RADIUS = 2.51;
-    private static final double X = 103.842672;
-    private static final double Y = 1.288724;
-
     /**
      * @param cache
      *            Cache to query
@@ -58,6 +55,7 @@ class CacheReader {
     }
 
     void start() {
+        logger.info("Start");
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         IntStream.range(0, numThreads).forEach(i -> {
             executorService.submit(this::doQuery);
@@ -65,23 +63,28 @@ class CacheReader {
     }
 
     private void doQuery() {
-        System.out.println("Transaction spatialQuery started");
+        logger.info("Transaction spatialQuery started");
         SearchManager searchManager = Search.getSearchManager(cache);
+        
+        Random random = new Random(9999L);
+        double radius = 0.50 * (1 + random.nextInt(5)); // from 0.50 to 2.50, 5 queries.
 
         while (true) {
             long start = System.nanoTime();
-
             Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
-                    .within(RADIUS, Unit.KM).ofLatitude(Y).andLongitude(X).createQuery();
-
+                    .within(radius, Unit.KM)
+                    .ofLatitude(CacheWriter.CENTER_LATITUDE)
+                    .andLongitude(CacheWriter.CENTER_LONGITUDE)
+                    .createQuery();
             CacheQuery cacheQuery = searchManager.getQuery(query);
             List<Object> list = cacheQuery.list();
-
-            logger.info("spatialQuery Time taken to search (ms): {}", NANOSECONDS.toMillis(System.nanoTime() - start));
+            logger.info("spatialQuery with radius {} Time taken to search (ms): {}",
+                    radius, NANOSECONDS.toMillis(System.nanoTime() - start));
 
             int directCount = 0;
             for (CacheEntity taxi : cache.values()) {
-                if (Point.fromCoordinates(taxi).getDistanceTo(Y, X) <= RADIUS) {
+                if (Point.fromCoordinates(taxi).getDistanceTo(CacheWriter.CENTER_LATITUDE, CacheWriter.CENTER_LONGITUDE)
+                        <= radius) {
                     directCount++;
                 }
             }
@@ -90,6 +93,7 @@ class CacheReader {
             if (list.size() != directCount) {
                 logger.error("number of records does not tally: {},{}", list.size(), directCount);
             }
+            
             LockSupport.parkNanos(sleepTimeUnit.toNanos(sleep));
         }
     }

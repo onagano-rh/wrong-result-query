@@ -46,7 +46,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        log.info("Start");
+        log.info("Start main");
         if (args.length < 2) {
             usage();
         }
@@ -57,10 +57,10 @@ public class Main {
         CacheWriter cacheWriter = new CacheWriter(cache, writeInterval, TimeUnit.SECONDS);
         cacheWriter.start();
 
-        CacheReader cacheReader = new CacheReader(cache, queryInterval, TimeUnit.MILLISECONDS);
+        CacheReader cacheReader = new CacheReader(cache, queryInterval, TimeUnit.MILLISECONDS, 8);
         cacheReader.start();
 
-        log.info("End");
+        log.info("End main");
     }
 
     private static void usage() {
