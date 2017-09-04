@@ -1,8 +1,8 @@
 package com.example;
 
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -28,7 +28,7 @@ class CacheWriter {
     private final int numThreads;
     
     private int count = 0;
-    private Random random = new Random(9999L);
+    private ThreadLocalRandom random = ThreadLocalRandom.current();
 
     /**
      * @param cache
@@ -55,7 +55,7 @@ class CacheWriter {
     void start() {
         logger.info("Start");
         IntStream.range(0, numThreads).forEach(i -> {
-            scheduledExecutorService.scheduleAtFixedRate(this::doWrite, i, period, timeUnit);
+            scheduledExecutorService.scheduleAtFixedRate(this::doWrite, 1, period, timeUnit);
         });
     }
 

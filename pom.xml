@@ -69,7 +69,7 @@
                         <argument>-classpath</argument>
                         <classpath/>
                         <argument>com.example.Main</argument>
-                        <argument>5</argument> <!-- WRITE_INTERVAL_SECS -->
+                        <argument>8</argument> <!-- QUERY_THREADS_MS -->
                         <argument>50</argument> <!-- QUERY_INTERVAL_MS -->
                     </arguments>
                 </configuration>

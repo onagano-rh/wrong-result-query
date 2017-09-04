@@ -2,10 +2,15 @@ package com.example;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.IntStream;
@@ -31,6 +36,8 @@ class CacheReader {
     private final long sleep;
     private final TimeUnit sleepTimeUnit;
     private final int numThreads;
+    
+    private static final int HISTORY_SIZE = 10;
 
     /**
      * @param cache
@@ -58,44 +65,83 @@ class CacheReader {
         logger.info("Start");
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         IntStream.range(0, numThreads).forEach(i -> {
-            executorService.submit(this::doQuery);
+            executorService.submit(new QueryTask(i));
         });
     }
-
-    private void doQuery() {
-        logger.info("Transaction spatialQuery started");
-        SearchManager searchManager = Search.getSearchManager(cache);
+    
+    private class QueryTask implements Runnable {
+        private double radius;
+        private Queue<Integer> diffHistory = new LinkedList<Integer>();
         
-        Random random = new Random(9999L);
-        double radius = 0.50 * (1 + random.nextInt(5)); // from 0.50 to 2.50, 5 queries.
+        QueryTask(int id) {
+            this.radius = (id + 1) * 0.4;
+        }
+        
+        public void run() {
+            logger.info("Transaction spatialQuery started with radius{}", radius);
+            int loopCount = 1;
+            
+            while (true) {
 
-        while (true) {
-            long start = System.nanoTime();
-            Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
-                    .within(radius, Unit.KM)
-                    .ofLatitude(CacheWriter.CENTER_LATITUDE)
-                    .andLongitude(CacheWriter.CENTER_LONGITUDE)
-                    .createQuery();
-            CacheQuery cacheQuery = searchManager.getQuery(query);
-            List<Object> list = cacheQuery.list();
-            logger.info("spatialQuery with radius {} Time taken to search (ms): {}",
-                    radius, NANOSECONDS.toMillis(System.nanoTime() - start));
+                int queryCount = queryResultFor(radius);
+                int directCount = directResultFor(radius);
+                logger.debug("Query count: {}, direct count: {}", queryCount, directCount);
 
-            int directCount = 0;
-            for (CacheEntity taxi : cache.values()) {
-                if (Point.fromCoordinates(taxi).getDistanceTo(CacheWriter.CENTER_LATITUDE, CacheWriter.CENTER_LONGITUDE)
-                        <= radius) {
-                    directCount++;
+                int diff = directCount - queryCount;
+                diffHistory.add(diff);
+                if (diffHistory.size() > HISTORY_SIZE) diffHistory.remove();
+                if (diff != 0 && diffHistory.size() >= HISTORY_SIZE && hasAllTheSameElements(diffHistory)) {
+                    // getting a wrong result consistently
+                    logger.error("Reproduced with radius {}, query {}, direct {}", radius, queryCount, directCount);
                 }
-            }
-
-            logger.info("{},{}", list.size(), directCount);
-            if (list.size() != directCount) {
-                logger.error("number of records does not tally: {},{}", list.size(), directCount);
+                
+                if (loopCount % 1000 == 0) logger.info("Executing {} loops", loopCount);
+                
+                loopCount++;
+                LockSupport.parkNanos(sleepTimeUnit.toNanos(sleep));
             }
             
-            LockSupport.parkNanos(sleepTimeUnit.toNanos(sleep));
         }
+        
     }
 
+    private int queryResultFor(double radius) {
+        int queryCount = 0;
+        SearchManager searchManager = Search.getSearchManager(cache);
+        Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
+                .within(radius, Unit.KM)
+                .ofLatitude(CacheWriter.CENTER_LATITUDE)
+                .andLongitude(CacheWriter.CENTER_LONGITUDE)
+                .createQuery();
+        CacheQuery cacheQuery = searchManager.getQuery(query);
+        List<Object> list = cacheQuery.list();
+        queryCount = list.size();
+        return queryCount;
+    }
+    
+    private int directResultFor(double radius) {
+        int directCount = 0;
+        for (CacheEntity taxi : cache.values()) {
+            if (Point.fromCoordinates(taxi).getDistanceTo(CacheWriter.CENTER_LATITUDE, CacheWriter.CENTER_LONGITUDE)
+                    <= radius) {
+                directCount++;
+            }
+        }
+        return directCount;
+    }
+
+    // is there a better stream way?
+    private static boolean hasAllTheSameElements(Queue<Integer> queue) {
+        boolean first = true;
+        int lastValue = -1;
+        for (int i : queue) {
+            if (first) {
+                first = false;
+            } else {
+                if (lastValue != i) return false;                
+            }
+            lastValue = i;
+        }
+        return true;
+    }
 }

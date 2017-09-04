@@ -46,28 +46,17 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        log.info("Start main");
-        if (args.length < 2) {
-            usage();
-        }
+        log.info("Begin main");
 
-        long writeInterval = Long.parseLong(args[0]);
+        int numThreads = Integer.parseInt(args[0]);
         long queryInterval = Long.parseLong(args[1]);
 
-        CacheWriter cacheWriter = new CacheWriter(cache, writeInterval, TimeUnit.SECONDS);
+        CacheWriter cacheWriter = new CacheWriter(cache, Long.MAX_VALUE, TimeUnit.SECONDS);
         cacheWriter.start();
 
-        CacheReader cacheReader = new CacheReader(cache, queryInterval, TimeUnit.MILLISECONDS, 8);
+        CacheReader cacheReader = new CacheReader(cache, queryInterval, TimeUnit.MILLISECONDS, numThreads);
         cacheReader.start();
 
         log.info("End main");
-    }
-
-    private static void usage() {
-        System.out.println("Usage: Main [WRITE_INTERVAL_SECS] [QUERY_INTERVAL_MS]");
-        System.out.println();
-        System.out.println("       WRITE_INTERVAL_SECS : interval in seconds to write taxi information to the cache, without purging");
-        System.out.println("       QUERY_INTERVAL_MS : interval in millis between one query and another");
-        System.exit(0);
     }
 }
