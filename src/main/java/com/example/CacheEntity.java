@@ -13,7 +13,7 @@ import org.hibernate.search.spatial.Coordinates;
 
 @Spatial
 @Indexed
-public class Location implements Coordinates, Serializable {
+public class CacheEntity implements Coordinates, Serializable {
     private static final long serialVersionUID = -99721460717658431L;
 
     @Field(store = Store.YES, analyze = Analyze.NO)
@@ -27,7 +27,7 @@ public class Location implements Coordinates, Serializable {
     @Longitude
     Double longitude;
 
-    public Location(String name, double latitude, double longitude) {
+    public CacheEntity(String name, double latitude, double longitude) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;

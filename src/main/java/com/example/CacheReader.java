@@ -26,7 +26,7 @@ class CacheReader {
 
     private static final Logger logger = LogManager.getLogger();
 
-    private final Cache<Integer, Location> cache;
+    private final Cache<String, CacheEntity> cache;
     private final long sleep;
     private final TimeUnit sleepTimeUnit;
     private final int numThreads;
@@ -46,14 +46,14 @@ class CacheReader {
      *            number of threads to use
      */
 
-    CacheReader(Cache<Integer, Location> cache, long sleep, TimeUnit sleepTimeUnit, int numThreads) {
+    CacheReader(Cache<String, CacheEntity> cache, long sleep, TimeUnit sleepTimeUnit, int numThreads) {
         this.cache = cache;
         this.sleep = sleep;
         this.sleepTimeUnit = sleepTimeUnit;
         this.numThreads = numThreads;
     }
 
-    CacheReader(Cache<Integer, Location> cache, long sleep, TimeUnit sleepTimeUnit) {
+    CacheReader(Cache<String, CacheEntity> cache, long sleep, TimeUnit sleepTimeUnit) {
         this(cache, sleep, sleepTimeUnit, 1);
     }
 
@@ -71,7 +71,7 @@ class CacheReader {
         while (true) {
             long start = System.nanoTime();
 
-            Query query = searchManager.buildQueryBuilderForClass(Location.class).get().spatial()
+            Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
                     .within(RADIUS, Unit.KM).ofLatitude(Y).andLongitude(X).createQuery();
 
             CacheQuery cacheQuery = searchManager.getQuery(query);
@@ -80,7 +80,7 @@ class CacheReader {
             logger.info("spatialQuery Time taken to search (ms): {}", NANOSECONDS.toMillis(System.nanoTime() - start));
 
             int directCount = 0;
-            for (Location taxi : cache.values()) {
+            for (CacheEntity taxi : cache.values()) {
                 if (Point.fromCoordinates(taxi).getDistanceTo(Y, X) <= RADIUS) {
                     directCount++;
                 }

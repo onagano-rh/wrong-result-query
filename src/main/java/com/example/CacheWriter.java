@@ -16,7 +16,7 @@ class CacheWriter {
 
     private static final Logger logger = LogManager.getLogger();
 
-    private final Cache<Integer, Location> cache;
+    private final Cache<String, CacheEntity> cache;
     private final ScheduledExecutorService scheduledExecutorService;
     private final long period;
     private final TimeUnit timeUnit;
@@ -29,7 +29,7 @@ class CacheWriter {
      * @param timeUnit
      *            TimeUnit
      */
-    public CacheWriter(Cache<Integer, Location> cache, long period, TimeUnit timeUnit) {
+    public CacheWriter(Cache<String, CacheEntity> cache, long period, TimeUnit timeUnit) {
         this.period = period;
         this.timeUnit = timeUnit;
         scheduledExecutorService = Executors.newScheduledThreadPool(1);
@@ -56,7 +56,7 @@ class CacheWriter {
             // Range of serveral killometers
             double dlat = (random.nextDouble() - 0.5) * 0.20;
             double dlon = (random.nextDouble() - 0.5) * 0.40;
-            cache.put(i, new Location("taxi-" + i, sgLat + dlat, sgLon + dlon));
+            cache.put(String.valueOf(i), new CacheEntity("taxi-" + i, sgLat + dlat, sgLon + dlon));
         }
         logger.info("Finished cache writing, cache size is {}", cache.size());
     }

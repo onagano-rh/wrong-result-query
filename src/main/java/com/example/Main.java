@@ -18,7 +18,7 @@ public class Main {
     private static Logger log = LogManager.getLogger();
 
     private static EmbeddedCacheManager cacheManager;
-    private static Cache<Integer, Location> cache;
+    private static Cache<String, CacheEntity> cache;
     static {
         GlobalConfiguration gc = new GlobalConfigurationBuilder()
                 .clusteredDefault()
@@ -38,7 +38,7 @@ public class Main {
                     .addProperty("default.worker.thread_pool.size", "32")
                     .addProperty("default.optimizer.operation_limit.max", "1500")
 //                    .addProperty("hibernate.search.lucene_version", "LUCENE_CURRENT")
-//                    .addIndexedEntity(Location.class)
+//                    .addIndexedEntity(CacheEntity.class)
                 .jmxStatistics().enable()
                 .build();
         cacheManager = new DefaultCacheManager(gc, dc);
