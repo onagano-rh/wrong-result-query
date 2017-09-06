@@ -51,9 +51,18 @@ public class Main {
         int numThreads = Integer.parseInt(args[0]);
         long queryInterval = Long.parseLong(args[1]);
 
+        // Wait 1 second, insert 10000 (or -Drepro.batch.size=<nnn>) entries, and wait forever.
         CacheWriter cacheWriter = new CacheWriter(cache, Long.MAX_VALUE, TimeUnit.SECONDS);
         cacheWriter.start();
+        
+        while (cache.size() < CacheWriter.BATCH_SIZE) {
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException ignore) {}
+        }
+        log.info("Cache filled with {} entries", cache.size());
 
+        // Repeat query, direct filtering, and sleep for queryInterval in numThreads threads.
         CacheReader cacheReader = new CacheReader(cache, queryInterval, TimeUnit.MILLISECONDS, numThreads);
         cacheReader.start();
 

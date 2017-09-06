@@ -66,11 +66,20 @@
                     <arguments>
                         <argument>-Djava.net.preferIPv4Stack=true</argument>
                         <argument>-Dlog4j.configurationFile=${project.basedir}/log4j2.xml</argument>
+                        <argument>-verbose:gc</argument>
+                        <argument>-Xloggc:${project.basedir}/gc.log</argument>
+                        <argument>-XX:+PrintGCDetails</argument>
+                        <argument>-XX:+PrintGCDateStamps</argument>
+                        <argument>-XX:+UseGCLogFileRotation</argument>
+                        <argument>-XX:NumberOfGCLogFiles=5</argument>
+                        <argument>-XX:GCLogFileSize=3M</argument>
+                        <argument>-Xms128m</argument>
+                        <argument>-Xmx128m</argument>
                         <argument>-classpath</argument>
                         <classpath/>
                         <argument>com.example.Main</argument>
                         <argument>8</argument> <!-- QUERY_THREADS_MS -->
-                        <argument>50</argument> <!-- QUERY_INTERVAL_MS -->
+                        <argument>100</argument> <!-- QUERY_INTERVAL_MS -->
                     </arguments>
                 </configuration>
             </plugin>

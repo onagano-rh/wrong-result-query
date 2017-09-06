@@ -1,16 +1,10 @@
 package com.example;
 
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.IntStream;
@@ -37,7 +31,8 @@ class CacheReader {
     private final TimeUnit sleepTimeUnit;
     private final int numThreads;
     
-    private static final int HISTORY_SIZE = 10;
+    public static final int HISTORY_SIZE = Integer.parseInt(System.getProperty("repro.history.size", "100"));
+    private volatile boolean reproduced = false;
 
     /**
      * @param cache
@@ -65,44 +60,51 @@ class CacheReader {
         logger.info("Start");
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         IntStream.range(0, numThreads).forEach(i -> {
-            executorService.submit(new QueryTask(i));
+            // Use different radius parameter to differentiate queries those are cached.
+            double radius = (i + 1) * 0.4;
+            executorService.submit(() -> doQuery(radius));
         });
     }
     
-    private class QueryTask implements Runnable {
-        private double radius;
-        private Queue<Integer> diffHistory = new LinkedList<Integer>();
-        
-        QueryTask(int id) {
-            this.radius = (id + 1) * 0.4;
-        }
-        
-        public void run() {
-            logger.info("Transaction spatialQuery started with radius{}", radius);
-            int loopCount = 1;
-            
-            while (true) {
+    private void doQuery(double radius) {
+        logger.info("Transaction spatialQuery started with radius {}", radius);
+        int loopCount = 0;
+        Queue<Integer> diffHistory = new LinkedList<Integer>();
+        boolean reproducedFirstTime = false;
 
-                int queryCount = queryResultFor(radius);
-                int directCount = directResultFor(radius);
-                logger.debug("Query count: {}, direct count: {}", queryCount, directCount);
+        while (!reproduced) {
+            if (loopCount % 1000 == 0) logger.info("Executing {}th loop", loopCount);
 
-                int diff = directCount - queryCount;
-                diffHistory.add(diff);
-                if (diffHistory.size() > HISTORY_SIZE) diffHistory.remove();
-                if (diff != 0 && diffHistory.size() >= HISTORY_SIZE && hasAllTheSameElements(diffHistory)) {
-                    // getting a wrong result consistently
-                    logger.error("Reproduced with radius {}, query {}, direct {}", radius, queryCount, directCount);
+            int queryCount = queryResultFor(radius);
+            int directCount = directResultFor(radius);
+            logger.debug("Query count: {}, direct count: {}", queryCount, directCount);
+
+            int diff = directCount - queryCount;
+            if (diff != 0) logger.info("Number of records does not tally: {},{}", queryCount, directCount);
+
+            diffHistory.add(diff);
+            if (diffHistory.size() > HISTORY_SIZE) diffHistory.remove();
+
+            if (diff != 0 && diffHistory.size() >= HISTORY_SIZE && hasAllTheSameElements(diffHistory)) {
+                // Getting a wrong result consistently
+                if (!reproducedFirstTime) {
+                    logger.error("It seems reproduced but reset the history and sleep for 1 minute for sure");
+                    reproducedFirstTime = true;
+                    diffHistory = new LinkedList<Integer>();
+                    try {
+                        Thread.sleep(60000L);
+                    } catch (InterruptedException ignore) {}
+                }else {
+                    logger.fatal("{} times returned different results with radius {}, query {}, direct {}",
+                            HISTORY_SIZE, radius, queryCount, directCount);
+                    reproduced = true;
                 }
-                
-                if (loopCount % 1000 == 0) logger.info("Executing {} loops", loopCount);
-                
-                loopCount++;
-                LockSupport.parkNanos(sleepTimeUnit.toNanos(sleep));
             }
-            
+
+            loopCount++;
+            LockSupport.parkNanos(sleepTimeUnit.toNanos(sleep));
         }
-        
+        System.exit(1);
     }
 
     private int queryResultFor(double radius) {

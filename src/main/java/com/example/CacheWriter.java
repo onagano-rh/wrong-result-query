@@ -17,7 +17,7 @@ class CacheWriter {
 
     private static final Logger logger = LogManager.getLogger();
     
-    public static final int BATCH_SIZE = Integer.parseInt(System.getProperty("repro.batch.size", "5000"));
+    public static final int BATCH_SIZE = Integer.parseInt(System.getProperty("repro.batch.size", "10000"));
     public static final double CENTER_LATITUDE = Double.parseDouble(System.getProperty("repro.center.latitude", "1.288724"));
     public static final double CENTER_LONGITUDE = Double.parseDouble(System.getProperty("repro.center.longitude", "103.842672"));
 
