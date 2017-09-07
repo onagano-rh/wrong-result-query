@@ -38,12 +38,6 @@
             <artifactId>infinispan-embedded-query</artifactId>
             <!--
             <version>8.4.0.Final-redhat-2-jdg-1020</version>
-            Comment out to apply the patch.
-            Install it in prior:
-            $ mvn install:install-file
-             -Dfile=/path/to/infinispan-embedded-query-8.4.0.Final-redhat-2-jdg-1020.jar
-             -DgroupId=org.infinispan -DartifactId=infinispan-embedded-query
-             -Dversion=8.4.0.Final-redhat-2-jdg-1020 -Dpackaging=jar
             -->
         </dependency>
     </dependencies>
@@ -86,4 +80,29 @@
         </plugins>
         <finalName>${project.artifactId}</finalName>
     </build>
+
+    <repositories>
+        <repository>
+            <id>jboss-enterprise-maven-repository</id>
+            <url>https://maven.repository.redhat.com/ga/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jboss-enterprise-maven-repository</id>
+            <url>https://maven.repository.redhat.com/ga/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
