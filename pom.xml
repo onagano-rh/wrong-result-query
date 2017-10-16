@@ -13,7 +13,7 @@
         JDG 7.0.0: 8.3.0.Final-redhat-1
         JDG 7.1.0: 8.4.0.Final-redhat-2
         -->
-        <version.org.infinispan>8.3.0.Final-redhat-1</version.org.infinispan>
+        <version.org.infinispan>8.4.0.Final-redhat-2</version.org.infinispan>
     </properties>
 
     <dependencyManagement>
@@ -36,9 +36,7 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-embedded-query</artifactId>
-            <!--
             <version>8.4.0.Final-redhat-2-jdg-1020</version>
-            -->
         </dependency>
         <dependency>
             <groupId>junit</groupId>
