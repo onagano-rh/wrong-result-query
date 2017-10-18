@@ -1,8 +1,10 @@
 package com.example;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.lucene.search.Query;
 import org.hibernate.search.query.dsl.Unit;
@@ -54,44 +56,67 @@ public class MainTest {
         cache = cacheManager.getCache();
     }
 
-    private static int doSpatialQuery(double radius, Unit unit, double latitude, double longitude) {
+    private static List<CacheEntity> doSpatialQuery(double radius, Unit unit, double latitude, double longitude) {
         SearchManager searchManager = Search.getSearchManager(cache);
         Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
                 .within(radius, Unit.KM)
                 .ofLatitude(CacheWriter.CENTER_LATITUDE)
                 .andLongitude(CacheWriter.CENTER_LONGITUDE)
                 .createQuery();
-        CacheQuery cacheQuery = searchManager.getQuery(query);
-        List<Object> list = cacheQuery.list();
-        return list.size();
+        CacheQuery<CacheEntity> cacheQuery = searchManager.getQuery(query, CacheEntity.class);
+        return cacheQuery.list();
     }
 
-    private static double calcDistanceByHS(double latitude, double longitude, Coordinates from) {
+    private static double calcDistanceByHS(Coordinates from, double latitude, double longitude) {
         return Point.fromCoordinates(from).getDistanceTo(latitude, longitude);
     }
-
-    @Test
-    public void testSpatialQuery() {
-        cache.put("key01", new CacheEntity("ce01", 1.3260100000000001, 103.91293999999999));
-        cache.put("key02", new CacheEntity("ce02", 1.27329, 103.91422));
-
-        assertEquals("Not indexed yet", 0, doSpatialQuery(2.5, Unit.KM, 1.15999, 103.9927));
-
+    
+    private static void safeSleep(long millis) {
         try {
-            Thread.sleep(10000L);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.sleep(millis);
+        } catch (InterruptedException ignore) {
         }
-
-        assertEquals("Still should be zero", 0, doSpatialQuery(2.5, Unit.KM, 1.15999, 103.9927));
     }
+    
+    private static void putRandomData(Coordinates center, double deltaLatitude, double deltaLongitude, int num) {
+        Random random = new Random();
+        for (int i = 0; i < num; i++) {
+            double dlat = (random.nextDouble() - 0.5) * deltaLatitude;
+            double dlon = (random.nextDouble() - 0.5) * deltaLongitude;
+            cache.put(String.valueOf(i),
+                    new CacheEntity("taxi-" + i, center.getLatitude() + dlat, center.getLongitude() + dlon));
+        }
+    }
+    
+    @Test
+    public void testReturnedRadius() {
+        CacheEntity p0 = new CacheEntity("ce00", 1.15999, 103.9927);
+        putRandomData(p0, 0.50, 0.50, 10000);
+        safeSleep(10000L);
+        List<CacheEntity> results = doSpatialQuery(2.5, Unit.KM, p0.getLatitude(), p0.getLongitude());
+        for (CacheEntity c : results) {
+            double d = calcDistanceByHS(p0, c.getLatitude(), c.getLongitude());
+            assertTrue(c + " is distant of " + d, d <= 2.5);
+        }
+    }
+
+//    @Test
+//    public void testSpatialQuery() {
+//        cache.put("key01", new CacheEntity("ce01", 1.3260100000000001, 103.91293999999999));
+//        cache.put("key02", new CacheEntity("ce02", 1.27329, 103.91422));
+//        assertEquals("Not indexed yet", 0, doSpatialQuery(2.5, Unit.KM, 1.15999, 103.9927).size());
+//        safeSleep(10000L);
+//        assertEquals("Still should be zero", 0, doSpatialQuery(2.5, Unit.KM, 1.15999, 103.9927).size());
+//    }
 
     @Test
     public void testDistanceCalculation() {
         CacheEntity p0 = new CacheEntity("ce00", 1.15999, 103.9927);
         CacheEntity p1 = new CacheEntity("ce01", 1.3260100000000001, 103.91293999999999);
         CacheEntity p2 = new CacheEntity("ce02", 1.27329, 103.91422);
-        assertEquals(20.47958802591737, calcDistanceByHS(p1.getLatitude(), p1.getLongitude(), p0), 0.00000000001);
-        assertEquals(15.32442864117991, calcDistanceByHS(p2.getLatitude(), p2.getLongitude(), p0), 0.00000000001);
+        CacheEntity p3 = new CacheEntity("ce03", 1.297660, 103.829837);
+        assertEquals(20.47958802591737, calcDistanceByHS(p0, p1.getLatitude(), p1.getLongitude()), 0.00000000001);
+        assertEquals(15.32442864117991, calcDistanceByHS(p0, p2.getLatitude(), p2.getLongitude()), 0.00000000001);
+        assertEquals(23.70958543796764, calcDistanceByHS(p0, p3.getLatitude(), p3.getLongitude()), 0.0001);
     }
 }
