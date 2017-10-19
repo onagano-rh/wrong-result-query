@@ -75,7 +75,7 @@ class CacheReader {
         while (!reproduced) {
             if (loopCount % 1000 == 0) logger.info("Executing {}th loop", loopCount);
 
-            int queryCount = queryResultFor(radius);
+            int queryCount = queryResultFor(radius).size();
             int directCount = directResultFor(radius);
             logger.debug("Query count: {}, direct count: {}", queryCount, directCount);
 
@@ -107,18 +107,15 @@ class CacheReader {
         System.exit(1);
     }
 
-    private int queryResultFor(double radius) {
-        int queryCount = 0;
+    private List<CacheEntity> queryResultFor(double radius) {
         SearchManager searchManager = Search.getSearchManager(cache);
         Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
                 .within(radius, Unit.KM)
                 .ofLatitude(CacheWriter.CENTER_LATITUDE)
                 .andLongitude(CacheWriter.CENTER_LONGITUDE)
                 .createQuery();
-        CacheQuery cacheQuery = searchManager.getQuery(query);
-        List<Object> list = cacheQuery.list();
-        queryCount = list.size();
-        return queryCount;
+        CacheQuery<CacheEntity> cacheQuery = searchManager.getQuery(query, CacheEntity.class);
+        return cacheQuery.list();
     }
     
     private int directResultFor(double radius) {
