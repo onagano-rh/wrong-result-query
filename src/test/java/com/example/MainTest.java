@@ -59,9 +59,9 @@ public class MainTest {
     private static List<CacheEntity> doSpatialQuery(double radius, Unit unit, double latitude, double longitude) {
         SearchManager searchManager = Search.getSearchManager(cache);
         Query query = searchManager.buildQueryBuilderForClass(CacheEntity.class).get().spatial()
-                .within(radius, Unit.KM)
-                .ofLatitude(CacheWriter.CENTER_LATITUDE)
-                .andLongitude(CacheWriter.CENTER_LONGITUDE)
+                .within(radius, unit)
+                .ofLatitude(latitude)
+                .andLongitude(longitude)
                 .createQuery();
         CacheQuery<CacheEntity> cacheQuery = searchManager.getQuery(query, CacheEntity.class);
         return cacheQuery.list();
@@ -91,7 +91,7 @@ public class MainTest {
     @Test
     public void testReturnedRadius() {
         CacheEntity p0 = new CacheEntity("ce00", 1.15999, 103.9927);
-        putRandomData(p0, 0.50, 0.50, 10000);
+        putRandomData(p0, 0.90, 1.80, 10000);
         safeSleep(10000L);
         List<CacheEntity> results = doSpatialQuery(2.5, Unit.KM, p0.getLatitude(), p0.getLongitude());
         for (CacheEntity c : results) {
@@ -99,15 +99,6 @@ public class MainTest {
             assertTrue(c + " is distant of " + d, d <= 2.5);
         }
     }
-
-//    @Test
-//    public void testSpatialQuery() {
-//        cache.put("key01", new CacheEntity("ce01", 1.3260100000000001, 103.91293999999999));
-//        cache.put("key02", new CacheEntity("ce02", 1.27329, 103.91422));
-//        assertEquals("Not indexed yet", 0, doSpatialQuery(2.5, Unit.KM, 1.15999, 103.9927).size());
-//        safeSleep(10000L);
-//        assertEquals("Still should be zero", 0, doSpatialQuery(2.5, Unit.KM, 1.15999, 103.9927).size());
-//    }
 
     @Test
     public void testDistanceCalculation() {
